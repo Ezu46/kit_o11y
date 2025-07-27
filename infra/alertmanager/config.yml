@@ -1,0 +1,27 @@
+global:
+  resolve_timeout: 5m
+
+receivers:
+  - name: telegram
+    telegram_configs:
+      - bot_token: "5726577444:AAHfgCr1vZEHptk3A2kKPsCcyZazRN_V_wU"
+        chat_id:   -1002394259234
+        parse_mode: HTML
+
+route:
+  group_by: ['alertname']
+  receiver: telegram
+  routes:
+    - matchers:
+        - alertname="HighDBRPS"
+      receiver: telegram
+      group_wait: 0s
+      group_interval: 1s
+      repeat_interval: 1h
+
+    - matchers:
+        - alertname="HighP99Latency"
+      receiver: telegram
+      group_wait: 0s
+      group_interval: 1s
+      repeat_interval: 1h

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Go Load Generator</title>
+<style>
+body{font-family:sans-serif;max-width:600px;margin:2rem auto}input,button{padding:.4rem;margin:.3rem}
+</style>
+</head>
+<body>
+<h2>Load Generator</h2>
+<label>RPS: <input id="rps" type="number" value="30" min="1" /></label><br/>
+<label>Duration (sec): <input id="dur" type="number" value="60" min="1" /></label><br/>
+<label>Path: <input id="path" type="text" value="/slow" /></label><br/>
+<button id="start">Start Load</button>
+<p id="msg"></p>
+<script>
+document.getElementById('start').onclick=async()=>{
+ const rps=parseInt(document.getElementById('rps').value,10);
+ const dur=parseInt(document.getElementById('dur').value,10);
+ const path=document.getElementById('path').value;
+ const body={method:'GET',path,rps:rps||1,duration:dur||1};
+ const res=await fetch('/api/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+ document.getElementById('msg').textContent=res.ok?`Started load for ${dur}s`:'Error';
+};
+</script>
+</body>
+</html>

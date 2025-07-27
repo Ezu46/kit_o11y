@@ -1,0 +1,9 @@
+# секреты
+.env
+infra/alertmanager/config.yml   # содержит токен бота
+
+# состояние контейнеров/кэш
+pg_data/
+__pycache__/
+*.pyc
+*.log

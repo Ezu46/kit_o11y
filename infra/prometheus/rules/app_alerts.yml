@@ -1,0 +1,24 @@
+groups:
+  - name: o11y-demo-service
+    rules:
+      - alert: HighP99Latency
+        expr: |
+          1000 * histogram_quantile(
+            0.99,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 500
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "p99 latency > 500 ms (current: {{ $value }} ms)"
+          description: "Service latency is too high. Investigate deployment health."
+      - alert: HighDBRPS
+        expr: |
+          rate(pg_stat_database_xact_commit{datname="postgres"}[15s]) > 100
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: "DB RPS > 100 (current: {{ $value }} tx/s)"
+          description: "Database transaction rate exceeds expected threshold."

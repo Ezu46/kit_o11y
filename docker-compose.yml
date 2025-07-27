@@ -1,0 +1,95 @@
+version: "3.9"
+
+services:
+  app:
+    build: ./app
+    container_name: o11y_app
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: o11y_postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 3s
+      retries: 5
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./data:/data
+    expose:
+      - "5432"
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: o11y_pg_exporter
+    environment:
+      - DATA_SOURCE_URI=postgres:5432/${POSTGRES_DB}?sslmode=disable
+      - DATA_SOURCE_USER=${POSTGRES_USER}
+      - DATA_SOURCE_PASS=${POSTGRES_PASSWORD}
+    depends_on:
+      - postgres
+    ports:
+      - "9187:9187"
+
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: o11y_prometheus
+    volumes:
+      - ./infra/prometheus/:/etc/prometheus/
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    depends_on:
+      - app
+      - postgres_exporter
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: o11y_alertmanager
+    volumes:
+      - ./infra/alertmanager/config.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+    ports:
+      - "9093:9093"
+    depends_on:
+      - prometheus
+
+  grafana:
+    image: grafana/grafana:11.0.0
+    container_name: o11y_grafana
+    volumes:
+      - ./infra/grafana/provisioning/:/etc/grafana/provisioning/
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  load_go:
+      build:
+        context: ./load-go
+      container_name: o11y_load_go
+      ports:
+        - "8080:8080"
+      depends_on:
+        - app  
+
+volumes:
+  pg_data:
